@@ -1,33 +1,70 @@
 package abassawo.c4q.nyc.ecquo.Model;
 
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.table.DatabaseTable;
+
 /**
  * Created by c4q-Abass on 8/18/15.
  */
-public class User {
-    public static int pointTally;
-    public static String points  = pointTally + " " + "Points "; ;
 
-    public User(){
-        this.pointTally = 100;
+@DatabaseTable(tableName = "users")
+public class User {
+
+    @DatabaseField(generatedId = true)
+    private int id;
+
+    @DatabaseField
+    private String name;
+
+    @DatabaseField
+    private int points;
+
+    @DatabaseField
+    private int likes;
+
+    @DatabaseField
+    private int dislikes;
+
+    public User() {
     }
 
-    public String getPoints() {
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getPoints() {
         return points;
     }
 
-    public void setPoints(String points) {
-        this.points = points;
+    public void setPoints(int points) {
+        this.points = this.points + points;
     }
 
-    public int getPointTally() {
-        return pointTally;
+    public int getLikes() {
+        return likes;
     }
 
-    public void setPointTally(int pointTally) {
-        this.pointTally = pointTally;
+    public void setLikes(int likes) {
+        this.likes = this.likes + likes;
     }
 
-    public void addtoPoints(int numToAddBy){
-        this.pointTally = pointTally + numToAddBy;
+    public int getDislikes() {
+        return dislikes;
+    }
+
+    public void setDislikes(int dislikes) {
+        this.dislikes = this.dislikes + dislikes;
     }
 }

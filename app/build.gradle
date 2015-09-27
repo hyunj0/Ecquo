@@ -67,6 +67,6 @@ dependencies {
     compile 'com.truizlop.fabreveallayout:library:1.0.0'
     compile 'com.wdullaer:materialdatetimepicker:1.5.1'
     compile 'nl.qbusict:cupboard:2.1.2'
-
-
+    compile 'com.github.PhilJay:MPAndroidChart:v2.1.4'
+    compile files('libs/ormlite-android-4.48.jar')
 }

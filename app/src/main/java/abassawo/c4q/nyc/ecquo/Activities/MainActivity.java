@@ -15,6 +15,7 @@ import android.graphics.BitmapRegionDecoder;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.provider.MediaStore;
@@ -60,6 +61,7 @@ import com.mikepenz.materialdrawer.model.interfaces.IProfile;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -67,6 +69,7 @@ import java.util.List;
 import abassawo.c4q.nyc.ecquo.Model.DBHelper;
 import abassawo.c4q.nyc.ecquo.Model.EmailFetcher;
 import abassawo.c4q.nyc.ecquo.Model.User;
+import abassawo.c4q.nyc.ecquo.Model.UserDatabaseHelper;
 import abassawo.c4q.nyc.ecquo.Model.sPlanner;
 import abassawo.c4q.nyc.ecquo.Model.Task;
 import abassawo.c4q.nyc.ecquo.R;
@@ -78,17 +81,12 @@ import static nl.qbusict.cupboard.CupboardFactory.cupboard;
 
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, AbsListView.OnScrollListener, AbsListView.OnItemClickListener, AdapterView.OnItemLongClickListener {
-    @Bind(R.id.toolbar)
-    Toolbar toolbar;
-    @Bind(R.id.empty_prompt)
-    TextView tasksEmptyTV;
-    @Bind(R.id.fab2)
-    FloatingActionButton fabEdit;
 
-    @Bind(R.id.empty_card_view)
-    CardView emptyLayout;
-    @Bind(R.id.drawer_view)
-    DrawerLayout mDrawerLayout;
+    @Bind(R.id.toolbar) Toolbar toolbar;
+    @Bind(R.id.empty_prompt) TextView tasksEmptyTV;
+    @Bind(R.id.fab2) FloatingActionButton fabEdit;
+    @Bind(R.id.empty_card_view) CardView emptyLayout;
+    @Bind(R.id.drawer_view) DrawerLayout mDrawerLayout;
     private FragmentManager fragMan;
     private  SQLiteDatabase  db;
     boolean firstRun;
@@ -110,9 +108,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ActionBarDrawerToggle mDrawerToggle;
     @Bind(R.id.deck1) CardContainer deck;
 
+    UserDatabaseHelper userDatabaseHelper;
+
+
     public void initDB(){
         DBHelper dbHelper = new DBHelper(this);
         db = dbHelper.getWritableDatabase();
+        userDatabaseHelper = UserDatabaseHelper.getInstance(this);
     }
 
 
@@ -122,15 +124,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         taskList = sPlanner.get(getApplicationContext()).fetchAllTasks();
         todayList = generateDummyData();
-        initDB();
+
+
+
+
+
         ButterKnife.bind(this);
-        setupNavDrawer(savedInstanceState);
-        initState();
-        initListeners();
-        setupActionBar();
-        taskList = sPlanner.get(getApplicationContext()).getTasks();
-        setupDayStacks(deck);
-        emptyLayout.setAlpha(1);
+
+
+
+
+
+
+        initDB();
+
+            setupNavDrawer(savedInstanceState);
+            initState();
+            initListeners();
+            setupActionBar();
+            taskList = sPlanner.get(getApplicationContext()).getTasks();
+            setupDayStacks(deck);
+            emptyLayout.setAlpha(1);
 
 
         // alarmMan = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE); //run in background thread or servic.
@@ -139,17 +153,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
     public void setupNavDrawer(Bundle savedInstanceState){
+        try {
+            user = userDatabaseHelper.readUser("user");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
-            user = new User();
-            if(user.points == null) {
-                user.pointTally = 100;
-            } else {
-                user.points = String.valueOf(user.pointTally) + " Points" ;
-            }
-            userProfile = new ProfileDrawerItem().withName(EmailFetcher.getEmailId(this))
-                    .withNameShown(true).withEmail(user.points)
+        userProfile = new ProfileDrawerItem().withName(EmailFetcher.getEmailId(this))
+                    .withNameShown(true).withEmail("" + user.getPoints() + " Points")
                     .withIcon(getResources()
                             .getDrawable(R.drawable.heart));
+
 
         final IProfile abassProfile = new ProfileDrawerItem().withName("Abass Bayo")
                 .withNameShown(true)
@@ -345,7 +359,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                     @Override
                     public void onLike() {  //this is swiping left. library is backwards.
-                        user.addtoPoints(10);
+                        user.setPoints(10);
+                        user.setDislikes(1);
+                        try {
+                            userDatabaseHelper.getDao(User.class).update(user);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
                         Snackbar
                                 .make(coordinatorLayoutView, "Task dismissed for later", Snackbar.LENGTH_SHORT)
                                 .show();
@@ -356,6 +376,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onDislike() {  //this is whiping right. hence the positive note.
+                    user.setLikes(1);
+                    try {
+                        userDatabaseHelper.getDao(User.class).update(user);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                     Snackbar
                             .make(coordinatorLayoutView, "Good Job, Keep up the good work", Snackbar.LENGTH_LONG)
                             .show();
@@ -463,8 +489,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startActivityForResult(new Intent(MainActivity.this, EditActivity.class), REQUEST_NEW_TASK); //testing animation
                 break;
             case R.id.fabGraph:
-                Toast.makeText(getApplicationContext(), "Personalized Results Coming Soon", Toast.LENGTH_SHORT).show();
-                //startActivity(new Intent(MainActivity.this, StatsActivity.class));
+                Intent showStats = new Intent(MainActivity.this, StatsActivity.class);
+                showStats.putExtra("name", user.getName().toString());
+                startActivity(showStats);
                 break;
         }
 
@@ -546,6 +573,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onSaveInstanceState(outState);
         //sPlanner.get(getApplicationContext()).saveTasks();
     }
+
+
 
 
 
